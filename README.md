@@ -1,62 +1,97 @@
 # Cost-Optimized Model Router
 
-A production-oriented LLM gateway that classifies request complexity, routes simple work to a low-cost model, escalates harder work to a stronger model, and exposes cost, latency, error, and routing metrics through Prometheus.
+[![CI](https://github.com/Lonfea/cost-optimized-model-router/actions/workflows/ci.yml/badge.svg)](https://github.com/Lonfea/cost-optimized-model-router/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
+![LiteLLM](https://img.shields.io/badge/Gateway-LiteLLM-black)
+![Prometheus](https://img.shields.io/badge/Telemetry-Prometheus-E6522C)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)
 
-## Architecture
+A production-oriented LLM gateway that routes each request to an appropriate model tier based on complexity, records estimated spend per request, exposes operational metrics, and falls back to the premium tier when the cheap path fails.
 
-Client -> FastAPI -> complexity classifier -> cheap or premium tier -> LiteLLM -> response + telemetry.
+## The production problem
 
-## What this proves
+Using the strongest model for every request wastes money. Using the cheapest model for every request creates quality failures. A production gateway needs a policy that makes the trade-off **explicit, observable and testable**.
 
-- custom model routing rather than hard-coding one model;
-- explicit cost versus quality trade-offs;
+```mermaid
+flowchart LR
+    U[Client] --> API[FastAPI Gateway]
+    API --> C[Complexity Classifier]
+    C -->|simple| CH[Cheap Tier]
+    C -->|complex| PR[Premium Tier]
+    CH --> L[LiteLLM]
+    PR --> L
+    CH -. failure .-> PR
+    L --> R[Response]
+    L --> M[Prometheus Metrics]
+    M --> COST[Spend / request]
+    M --> LAT[Latency]
+    M --> ERR[Failures]
+```
+
+## Routing decision
+
+```mermaid
+flowchart TD
+    Q[Incoming prompt] --> S{Complexity score}
+    S -->|below threshold| C[Cheap model]
+    S -->|at/above threshold| P[Premium model]
+    C --> F{Provider call succeeds?}
+    F -->|yes| O[Return + telemetry]
+    F -->|no| P
+    P --> O
+```
+
+## What this demonstrates
+
+- custom routing policy rather than hard-coding one model;
+- explicit cost-versus-quality engineering;
 - provider-agnostic calls through LiteLLM;
-- spend and latency telemetry;
+- per-request routing reasons and cost estimates;
+- Prometheus spend, latency, request and failure metrics;
 - deterministic tests for routing decisions;
-- premium fallback if the cheap tier fails.
+- fallback behavior when the low-cost path fails.
 
 ## Complexity signals
 
-The router scores requests using transparent signals:
-- prompt length;
-- stack traces and errors;
-- architecture, security, benchmark, migration, and distributed-systems language;
-- multi-step reasoning markers;
-- production or regression sensitivity;
-- optional user override.
+The current transparent heuristic scores prompt length, errors/stack traces, architecture and security language, multi-step reasoning markers, production/regression sensitivity and an optional caller override.
 
-A later version can add a learned classifier and compare routing quality against a labelled benchmark.
+A future learned router can be evaluated against this interpretable baseline.
 
 ## Configuration
 
-The default tiers are configurable with environment variables:
+| Variable | Purpose |
+|---|---|
+| `CHEAP_MODEL` | low-cost/default tier |
+| `PREMIUM_MODEL` | stronger escalation tier |
+| `COMPLEXITY_THRESHOLD` | routing boundary |
 
-- CHEAP_MODEL: openai/gpt-6-luna
-- PREMIUM_MODEL: openai/gpt-6-sol
-- COMPLEXITY_THRESHOLD: 4
+Model IDs remain configuration rather than routing-code constants.
 
-No model name is hard-wired into the routing algorithm.
+## Run locally
 
-## Run
+```bash
+git clone https://github.com/Lonfea/cost-optimized-model-router.git
+cd cost-optimized-model-router
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+cp .env.example .env
+uvicorn app.main:app --reload
+```
 
-    cd ai-engineering-lab/model-router
-    python -m venv .venv
-    source .venv/bin/activate
-    pip install -e ".[dev]"
-    cp .env.example .env
-    uvicorn app.main:app --reload
+## API surface
 
-## API
+**POST `/chat`** returns the response plus selected tier/model, complexity score, routing reasons, latency, cost estimate and fallback status.
 
-POST /chat returns the selected tier, model, complexity score, routing reasons, latency, cost estimate, and whether fallback was used.
-
-GET /metrics exposes Prometheus counters and histograms for requests, spend, latency, and failures.
+**GET `/metrics`** exposes Prometheus-compatible telemetry.
 
 ## Engineering roadmap
 
-- learned routing classifier;
-- per-user budgets and policies;
+- learned routing classifier and labelled routing benchmark;
+- per-tenant model budgets;
 - semantic caching;
-- provider-health scoring;
-- quality versus cost Pareto evaluation;
-- dashboard and alerts.
+- provider health scoring;
+- cost/quality Pareto analysis;
+- Grafana dashboard and SLO alerts.
+
+> This repository does not claim a cost-saving percentage until the router is benchmarked against real traffic.
