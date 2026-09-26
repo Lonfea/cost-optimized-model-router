@@ -11,6 +11,10 @@
 
 A production-oriented LLM gateway that routes each request to an appropriate model tier based on complexity, records estimated spend per request, exposes operational metrics, and falls back to the premium tier when the cheap path fails.
 
+## Product UI
+
+A product-style interface is included at `app/static/index.html`. Run the FastAPI service and open `http://localhost:8000/` to use the interface against the real backend endpoints.
+
 ## The production problem
 
 Using the strongest model for every request wastes money. Using the cheapest model for every request creates quality failures. A production gateway needs a policy that makes the trade-off **explicit, observable and testable**.
