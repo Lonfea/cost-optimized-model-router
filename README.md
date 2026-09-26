@@ -12,33 +12,33 @@ A production-oriented LLM gateway that routes each request to an appropriate mod
 
 Using the strongest model for every request wastes money. Using the cheapest model for every request creates quality failures. A production gateway needs a policy that makes the trade-off **explicit, observable and testable**.
 
-```mermaid
+```text
 flowchart LR
-    U[Client] --> API[FastAPI Gateway]
-    API --> C[Complexity Classifier]
-    C -->|simple| CH[Cheap Tier]
-    C -->|complex| PR[Premium Tier]
-    CH --> L[LiteLLM]
-    PR --> L
-    CH -. failure .-> PR
-    L --> R[Response]
-    L --> M[Prometheus Metrics]
-    M --> COST[Spend / request]
-    M --> LAT[Latency]
-    M --> ERR[Failures]
+U[Client] --> API[FastAPI Gateway]
+API --> C[Complexity Classifier]
+C -->|simple| CH[Cheap Tier]
+C -->|complex| PR[Premium Tier]
+CH --> L[LiteLLM]
+PR --> L
+CH -. failure .-> PR
+L --> R[Response]
+L --> M[Prometheus Metrics]
+M --> COST[Spend / request]
+M --> LAT[Latency]
+M --> ERR[Failures] 
 ```
 
 ## Routing decision
 
-```mermaid
+```text
 flowchart TD
-    Q[Incoming prompt] --> S{Complexity score}
-    S -->|below threshold| C[Cheap model]
-    S -->|at/above threshold| P[Premium model]
-    C --> F{Provider call succeeds?}
-    F -->|yes| O[Return + telemetry]
-    F -->|no| P
-    P --> O
+Q[Incoming prompt] --> S{Complexity score}
+S -->|below threshold| C[Cheap model]
+S -->|at/above threshold| P[Premium model]
+C --> F{Provider call succeeds?}
+F -->|yes| O[Return + telemetry]
+F -->|no| P
+P --> O 
 ```
 
 ## What this demonstrates
