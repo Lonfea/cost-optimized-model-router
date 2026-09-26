@@ -1,10 +1,9 @@
 import time
 import uuid
-
 from pathlib import Path
 
-from fastapi.responses import FileResponse
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse
 from litellm import acompletion
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
