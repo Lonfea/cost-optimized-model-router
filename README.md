@@ -6,6 +6,9 @@
 ![Prometheus](https://img.shields.io/badge/Telemetry-Prometheus-E6522C)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)
 
+
+<p align="center"><img src="docs/architecture.svg" alt="cost-optimized-model-router architecture" width="100%"></p>
+
 A production-oriented LLM gateway that routes each request to an appropriate model tier based on complexity, records estimated spend per request, exposes operational metrics, and falls back to the premium tier when the cheap path fails.
 
 ## The production problem
