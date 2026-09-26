@@ -1,6 +1,9 @@
 import time
 import uuid
 
+from pathlib import Path
+
+from fastapi.responses import FileResponse
 from fastapi import FastAPI, HTTPException, Response
 from litellm import acompletion
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -44,6 +47,10 @@ def _response_cost(response) -> float:
     value = hidden.get("response_cost")
     return float(value) if value is not None else 0.0
 
+
+@app.get("/", include_in_schema=False)
+def ui() -> FileResponse:
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
 
 @app.get("/health")
 def health() -> dict:
